@@ -8,6 +8,11 @@
                 onchange={handleSiteUrl}
                 type="url"
             ></lightning-input>
+            <lightning-input
+                label="Your APEX Rest Url Mapping"
+                value={apexRestUrlMapping}
+                onchange={handleRestMap}
+            ></lightning-input>
             <lightning-input label="Telegram BOT Token" value={botToken} onchange={handleBotToken}></lightning-input>
             <lightning-button
                 variant="success"

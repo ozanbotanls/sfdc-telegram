@@ -1,9 +1,10 @@
-import { LightningElement, track } from "lwc";
+import { LightningElement } from "lwc";
 import { showSuccessMessage, showErrorMessage } from "c/showMessageHelper";
 
 export default class TelegramSetup extends LightningElement {
-    @track siteUrl;
-    @track botToken;
+    siteUrl;
+    botToken;
+    apexRestUrlMapping;
 
     handleSiteUrl(event) {
         this.siteUrl = event.target.value;
@@ -11,8 +12,11 @@ export default class TelegramSetup extends LightningElement {
     handleBotToken(event) {
         this.botToken = event.target.value;
     }
+    handleRestMap(event) {
+        this.apexRestUrlMapping = event.target.value;
+    }
     get disabled() {
-        return !this.siteUrl || !this.botToken;
+        return !this.siteUrl || !this.botToken || !this.apexRestUrlMapping;
     }
     handleRegister() {
         fetch(
@@ -20,11 +24,15 @@ export default class TelegramSetup extends LightningElement {
                 this.botToken +
                 "/setWebhook?url=" +
                 this.siteUrl +
-                "/services/apexrest/telegram/" +
+                "/services/apexrest/" +
+                this.apexRestUrlMapping +
+                "/" +
                 this.botToken,
             {
                 method: "POST",
-                headers: { "Content-Type": "application/json" }
+                headers: {
+                    "Content-Type": "application/json"
+                }
             }
         )
             .then(response => {

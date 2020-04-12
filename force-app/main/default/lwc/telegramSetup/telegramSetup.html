@@ -1,0 +1,22 @@
+<template>
+    <lightning-card title="Telegram Webhook Registration" icon-name="custom:custom14">
+        <div class="slds-m-around_medium">
+            <p>Please specify your site details in order to register it to Telegram webhook service.</p>
+            <lightning-input
+                label="Public Site URL"
+                value={siteUrl}
+                onchange={handleSiteUrl}
+                type="url"
+            ></lightning-input>
+            <lightning-input label="Telegram BOT Token" value={botToken} onchange={handleBotToken}></lightning-input>
+            <lightning-button
+                variant="success"
+                label="Register"
+                title="Register"
+                onclick={handleRegister}
+                disabled={disabled}
+                class="slds-m-left_x-small"
+            ></lightning-button>
+        </div>
+    </lightning-card>
+</template>

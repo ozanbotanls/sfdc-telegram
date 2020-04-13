@@ -1,14 +1,26 @@
 public with sharing class TelegramSetupController {
     @AuraEnabled(cacheable=true)
-    public static Map<String, String> getRestApexClasses() {
-        Map<String, String> restClasses = new Map<String, String>();
+    public static List<RestClassWrapper> getRestApexClasses() {
+        List<RestClassWrapper> restClasses = new List<RestClassWrapper>();
         for (ApexClass cls : [SELECT Id, Name, Body FROM ApexClass WHERE Name != 'TelegramSetupController']) {
             if (cls.body.containsIgnoreCase('@RestResource') && cls.body.containsIgnoreCase('urlMapping=')) {
-                String urlMapping = cls.body.substringBetween('urlMapping=', ')');
-                restClasses.putAll(new Map<String, String>{ 'key' => cls.Name, 'val' => urlMapping });
+                String urlMapping = cls.body.substringBetween('urlMapping=\'/', '\')');
+                restClasses.add(new RestClassWrapper(cls.Name, urlMapping));
             }
         }
+        restClasses.add(new RestClassWrapper('ozanTest', 'testEndpoint/'));
         return restClasses;
+    }
+
+    class RestClassWrapper {
+        @AuraEnabled
+        public String name;
+        @AuraEnabled
+        public String urlMapping;
+        public RestClassWrapper(String name, String urlMapping) {
+            this.name = name;
+            this.urlMapping = urlMapping;
+        }
     }
 
     @AuraEnabled(cacheable=true)

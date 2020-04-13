@@ -14,7 +14,7 @@ export default class TelegramSetup extends LightningElement {
     getRestClasses({ error, data }) {
         if (data) {
             for (let i = 0; i < data.length; i++) {
-                this.restClasses = [...this.restClasses, { value: data[i].key, label: data[i].val }];
+                this.restClasses = [...this.restClasses, { value: data[i].urlMapping, label: data[i].name }];
             }
         } else if (error) {
             window.console.log("error => " + JSON.stringify(error));
@@ -49,13 +49,17 @@ export default class TelegramSetup extends LightningElement {
         return !this.chosenSite || !this.chosenClass || !this.botToken;
     }
     handleRegister() {
+        let urlMapping = this.chosenClass;
+        if (urlMapping.includes("/*")) {
+            urlMapping = urlMapping.replace("/*", "");
+        }
         fetch(
             "https://api.telegram.org/bot" +
                 this.botToken +
                 "/setWebhook?url=" +
                 this.chosenSite +
                 "/services/apexrest/" +
-                this.chosenClass +
+                urlMapping +
                 "/" +
                 this.botToken,
             {

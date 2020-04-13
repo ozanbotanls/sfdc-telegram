@@ -1,5 +1,15 @@
 public with sharing class TelegramUtility {
-    public static final String TELEGRAM_CHAT_TOKEN = '<your bot token here>';
+    public static String telegramBotToken {
+        get {
+            if (telegramBotToken == null) {
+                telegramBotToken = [SELECT Bot_Token__c FROM Telegram_Setup__mdt WHERE Is_Active__c = true LIMIT 1]
+                .Bot_Token__c;
+            }
+            return telegramBotToken;
+        }
+        private set;
+    }
+
     public static String sendMessage(String data, String method, Boolean isImmediate) {
         if (isImmediate) {
             return sendImmediate(data, method);
@@ -10,7 +20,7 @@ public with sharing class TelegramUtility {
     }
     private static String sendMessageHandler(String data, String method) {
         HttpRequest req = new HttpRequest();
-        req.setEndpoint('https://api.telegram.org/bot' + TELEGRAM_CHAT_TOKEN + '/' + method);
+        req.setEndpoint('https://api.telegram.org/bot' + telegramBotToken + '/' + method);
         req.setMethod('POST');
         req.setHeader('content-type', 'application/json');
         req.setBody(data);

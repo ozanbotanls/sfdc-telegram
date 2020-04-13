@@ -8,7 +8,6 @@ public with sharing class TelegramSetupController {
                 restClasses.add(new RestClassWrapper(cls.Name, urlMapping));
             }
         }
-        restClasses.add(new RestClassWrapper('ozanTest', 'testEndpoint/'));
         return restClasses;
     }
 

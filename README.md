@@ -1,7 +1,38 @@
-## _Telegram Connector for Salesforce_
+# _Telegram Connector for Salesforce_
 ---------
 
 This codebase will allow Salesforce Developers to easily integrate the Salesforce platform with Telegram through Bot API. This is not complete coverage, but fair enough to get developers going by eliminating a lot of hassles with which, under normal circumstances, they might have been facing in overcoming basic communication between two systems.
+
+### Registration for Telegram Webhook Service
+[Update]: https://core.telegram.org/bots/api#update
+In order to constantly _listen_ to incoming messages that you will receive in your chat group and to get them momentarily from within your server, Telegram BOT API provides you with a _webhook service_ that pings your endpoint whenever an [Update] occurs in the specified chat group. To ease the setup process, _Connector_ has a custom LWC for you to set a webhook.
+
+![alt text](https://github.com/ozanbotanls/sfdc-telegram/blob/master/readmephoto/telegram_setup.png "Telegram Setup")
+
+[Apex REST]: https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_rest_code_sample_basic.htm
+[Public Site]: https://help.salesforce.com/articleView?id=sites_setup_overview.htm&type=5
+Because Telegram will only pass a payload without going through 'authorization' flow, the best way to expose an endpoint convenient to this purpose on the Salesforce side is to create a [Public Site] that maps to an [Apex REST] implementation handling incoming updates.
+
+Create a public site, grant it access base Telegram classes as well as the custom Apex Rest resource that you will create. In the setup page above, after creating the site and the Apex Rest class, you will be able to see them in the dropdown list. Just choose and then put your **BOT TOKEN**, then press "Register".
+
+Here you go, you are now all set! You have a public endpoint welcoming Telegram webhook updates.
+
+> p.s. With regards to possible 'security concerns', here is the thing: Telegram will ping your endpoint with an update appended to your **BOT TOKEN** which, ideally, is only known by you. That way you can 'authenticate' incoming requests in your Rest Controller. (See below example)
+
+```apex
+@RestResource(urlMapping='/telegram/*')
+global with sharing class TelegramWebhook {
+    @HttpPost
+    global static void getWebHookUpdate() {
+        RestRequest req = RestContext.request;
+        if (req.requestURI.substring(req.requestURI.lastIndexOf('/') + 1) != TelegramUtility.TELEGRAM_CHAT_TOKEN) {
+            System.debug('Telegram chatbot token is not provided. Can not proceed');
+            return;
+        }
+        TelegramWebhookController.onUpdateReceived(req.requestBody.toString());
+    }
+}
+```
 
 ### Building and Sending Messages with _Connector_
 

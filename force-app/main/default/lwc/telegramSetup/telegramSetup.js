@@ -13,7 +13,6 @@ export default class TelegramSetup extends LightningElement {
     @wire(getRestApexClasses)
     getRestClasses({ error, data }) {
         if (data) {
-            window.console.log(JSON.stringify(data));
             for (let i = 0; i < data.length; i++) {
                 this.restClasses = [...this.restClasses, { value: data[i].key, label: data[i].val }];
             }

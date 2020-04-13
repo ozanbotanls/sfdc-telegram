@@ -1,31 +1,62 @@
-import { LightningElement } from "lwc";
+import { LightningElement, wire } from "lwc";
 import { showSuccessMessage, showErrorMessage } from "c/showMessageHelper";
+import getRestApexClasses from "@salesforce/apex/TelegramSetupController.getRestApexClasses";
+import getSiteUrl from "@salesforce/apex/TelegramSetupController.getSiteUrl";
 
 export default class TelegramSetup extends LightningElement {
-    siteUrl;
+    siteUrls = [];
+    restClasses = [];
+    chosenSite;
+    chosenClass;
     botToken;
-    apexRestUrlMapping;
 
-    handleSiteUrl(event) {
-        this.siteUrl = event.target.value;
+    @wire(getRestApexClasses)
+    getRestClasses({ error, data }) {
+        if (data) {
+            window.console.log(JSON.stringify(data));
+            for (let i = 0; i < data.length; i++) {
+                this.restClasses = [...this.restClasses, { value: data[i].key, label: data[i].val }];
+            }
+        } else if (error) {
+            window.console.log("error => " + JSON.stringify(error));
+        }
+    }
+    @wire(getSiteUrl)
+    getSites({ error, data }) {
+        if (data) {
+            for (let i = 0; i < data.length; i++) {
+                this.siteUrls = [...this.siteUrls, { value: data[i], label: data[i] }];
+            }
+        } else if (error) {
+            window.console.log("error => " + JSON.stringify(error));
+        }
+    }
+    get classes() {
+        return this.restClasses;
+    }
+    get sites() {
+        return this.siteUrls;
+    }
+    handleSiteChange(event) {
+        this.chosenSite = event.detail.value;
+    }
+    handleClassChange(event) {
+        this.chosenClass = event.detail.value;
     }
     handleBotToken(event) {
         this.botToken = event.target.value;
     }
-    handleRestMap(event) {
-        this.apexRestUrlMapping = event.target.value;
-    }
     get disabled() {
-        return !this.siteUrl || !this.botToken || !this.apexRestUrlMapping;
+        return !this.chosenSite || !this.chosenClass || !this.botToken;
     }
     handleRegister() {
         fetch(
             "https://api.telegram.org/bot" +
                 this.botToken +
                 "/setWebhook?url=" +
-                this.siteUrl +
+                this.chosenSite +
                 "/services/apexrest/" +
-                this.apexRestUrlMapping +
+                this.chosenClass +
                 "/" +
                 this.botToken,
             {

@@ -2,17 +2,24 @@
     <lightning-card title="Telegram Webhook Registration" icon-name="custom:custom14">
         <div class="slds-m-around_medium">
             <p>Please specify your site details in order to register it to Telegram webhook service.</p>
-            <lightning-input
-                label="Public Site URL"
-                value={siteUrl}
-                onchange={handleSiteUrl}
-                type="url"
-            ></lightning-input>
-            <lightning-input
-                label="Your APEX Rest Url Mapping"
-                value={apexRestUrlMapping}
-                onchange={handleRestMap}
-            ></lightning-input>
+            <lightning-combobox
+                name="sites"
+                label="Your Public Sites"
+                placeholder="Choose Site"
+                value={chosenSite}
+                onchange={handleSiteChange}
+                options={sites}
+            >
+            </lightning-combobox>
+            <lightning-combobox
+                name="classes"
+                label="Your APEX Rest Classes"
+                placeholder="Choose Class"
+                value={chosenClass}
+                onchange={handleClassChange}
+                options={classes}
+            >
+            </lightning-combobox>
             <lightning-input label="Telegram BOT Token" value={botToken} onchange={handleBotToken}></lightning-input>
             <br />
             <lightning-button

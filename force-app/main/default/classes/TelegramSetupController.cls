@@ -1,50 +1,5 @@
 public with sharing class TelegramSetupController {
     @AuraEnabled(cacheable=true)
-    public static List<String> getSiteUrl() {
-        List<Site> siteList = [
-            SELECT GuestUserId, Name, MasterLabel, Subdomain, OptionsRequireHttps, UrlPathPrefix
-            FROM Site
-            WHERE Status = 'Active'
-            LIMIT 100
-        ];
-        List<String> siteFullUrlList = new List<String>();
-        /** We can get instance of the org from organisation object **/
-        Organization org = [
-            SELECT InstanceName, Name, IsSandbox, OrganizationType, TrialExpirationDate
-            FROM Organization
-        ];
-        if (siteList != null && siteList.size() != 0) {
-            for (Site s : siteList) {
-                if (s.Subdomain != null) {
-                    String httpStr = 'http://';
-                    if (s.OptionsRequireHttps == true) {
-                        httpStr = 'https://';
-                    }
-                    String siteFullUrl = httpStr;
-                    // scratch org
-                    if (org.IsSandbox && org.TrialExpirationDate != null) {
-                        siteFullUrl += 'sandbox-';
-                    }
-                    // sandbox
-                    if (org.IsSandbox == true && org.TrialExpirationDate == null) {
-                        siteFullUrl += UserInfo.getUserName().substringAfterLast('.') + '-';
-                    }
-                    siteFullUrl += s.Subdomain + '.';
-                    siteFullUrl +=
-                        (org.IsSandbox || org.OrganizationType == 'Developer Edition'
-                            ? (org.InstanceName.toLowerCase() + '.')
-                            : '') + 'force.com';
-                    if (s.UrlPathPrefix != null) {
-                        siteFullUrl += '/' + s.UrlPathPrefix;
-                    }
-                    siteFullUrlList.add(siteFullUrl);
-                }
-            }
-        }
-        return siteFullUrlList;
-    }
-
-    @AuraEnabled(cacheable=true)
     public static Map<String, String> getRestApexClasses() {
         Map<String, String> restClasses = new Map<String, String>();
         for (ApexClass cls : [SELECT Id, Name, Body FROM ApexClass WHERE Name != 'TelegramSetupController']) {
@@ -54,5 +9,41 @@ public with sharing class TelegramSetupController {
             }
         }
         return restClasses;
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<String> getSiteUrl() {
+        List<Site> siteList = [
+            SELECT Subdomain, OptionsRequireHttps, UrlPathPrefix
+            FROM Site
+            WHERE Status = 'Active' AND Subdomain != null
+        ];
+        List<String> siteUrls = new List<String>();
+        Organization org = [
+            SELECT InstanceName, Name, IsSandbox, OrganizationType, TrialExpirationDate
+            FROM Organization
+        ];
+        for (Site s : siteList) {
+            String siteUrl = 'http://';
+            if (s.OptionsRequireHttps == true) {
+                siteUrl = 'https://';
+            }
+            // either sandbox or scratch org
+            if (org.IsSandbox) {
+                siteUrl += org.TrialExpirationDate != null
+                    ? 'sandbox-'
+                    : UserInfo.getUserName().substringAfterLast('.') + '-';
+            }
+            siteUrl += s.Subdomain + '.';
+            siteUrl +=
+                (org.IsSandbox || org.OrganizationType == 'Developer Edition'
+                    ? (org.InstanceName.toLowerCase() + '.')
+                    : '') + 'force.com';
+            if (s.UrlPathPrefix != null) {
+                siteUrl += '/' + s.UrlPathPrefix;
+            }
+            siteUrls.add(siteUrl);
+        }
+        return siteUrls;
     }
 }

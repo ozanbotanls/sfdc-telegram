@@ -36,7 +36,7 @@ new TelegramMessage.Text('Choose a Salesforce action')
     .sendMessage('<chatId>', true);
 ```
 ------
-Sometimes you might need to force the user to reply to one your specific messages. So, take this!
+Sometimes you might need to force the user to reply to one of your specific messages. So, take this!
 ```apex
 // force user to reply specifically to what your bot is sending out in the chat.
 new TelegramMessage.Text('Your response will be linked to this')
@@ -60,7 +60,7 @@ new TelegramMessage.Location(12.45654, 20.53214).get().sendMessage('<chatId>', t
 new TelegramMessage.Contact('phonoNumber', 'fName', 'lName').get().sendMessage('<chatId>', true);
 ```
 -------
-One cool thing is with the **ChatAction** class is that it gives your bot the ability to act more "_humanly_" by sending action status before the actual message is sent off.
+One cool thing with the **ChatAction** class is that it gives your bot the ability to act more "_humanly_" by sending action status before the actual message is sent off.
 ```apex
 // options are: 'typing','upload_photo','record_video','upload_video','record_audio','upload_audio','upload_document','find_location'
 new TelegramMessage.ChatAction('typing').get().sendMessage('<chatId>', true);

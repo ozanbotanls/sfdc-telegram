@@ -1,11 +1,50 @@
 # _Telegram Connector for Salesforce_
 ---------
+[Bot API]: https://core.telegram.org/bots/api
+This codebase will allow Salesforce Developers to easily integrate the Salesforce platform with Telegram through [Bot API]. This is not complete coverage, but fair enough to get developers going by eliminating a lot of hassles with which, under normal circumstances, they might have been facing in overcoming basic communication between two systems.
 
-This codebase will allow Salesforce Developers to easily integrate the Salesforce platform with Telegram through Bot API. This is not complete coverage, but fair enough to get developers going by eliminating a lot of hassles with which, under normal circumstances, they might have been facing in overcoming basic communication between two systems.
+## Install using Salesforce DX
 
-### Registration for Telegram Webhook Service
+1.  Authenticate with your dev hub org:
+
+    ```zsh
+    sfdx force:auth:web:login -d -a devhuborg
+    ```
+
+1.  Clone the repository:
+
+    ```zsh
+    git clone https://github.com/ozanbotanls/sfdc-telegram.git
+    cd sfdc-telegram
+    ```
+
+1.  Create a scratch org and provide it with an alias:
+
+    ```zsh
+    sfdx force:org:create -s -f config/project-scratch-def.json -a telegram
+    ```
+
+1.  Push the app to your scratch org:
+
+    ```zsh
+    sfdx force:source:push
+    ```
+
+1.  Assign the Telegram permission set to the default user:
+
+    ```zsh
+    sfdx force:user:permset:assign -n Telegram
+    ```
+
+1.  Open the scratch org:
+
+    ```
+    sfdx force:org:open
+    ```
+
+## Registration for Telegram Webhook Service
 [Update]: https://core.telegram.org/bots/api#update
-In order to constantly _listen_ to incoming messages that you will receive in your chat group and to get them momentarily from within your server, Telegram BOT API provides you with a _webhook service_ that pings your endpoint whenever an [Update] occurs in the specified chat group. To ease the setup process, _Connector_ has a custom LWC for you to set a webhook.
+In order to constantly _listen_ to incoming messages that you will receive in your chat group and to get them momentarily from within your server, Telegram [Bot API] provides you with a _webhook service_ that pings your endpoint whenever an [Update] occurs in the specified chat group. To ease the setup process, this _Connector_ has a custom LWC for you to set a webhook.
 
 ![alt text](https://github.com/ozanbotanls/sfdc-telegram/blob/master/readmephoto/telegram_setup.png "Telegram Setup")
 
@@ -34,7 +73,7 @@ global with sharing class TelegramWebhook {
 }
 ```
 
-### Building and Sending Messages with _Connector_
+## Building and Sending Messages with _Connector_
 
 ```apex
 // send a basic text message synchronously (pass false as a second param for async)
@@ -97,7 +136,7 @@ One cool thing with the **ChatAction** class is that it gives your bot the abili
 new TelegramMessage.ChatAction('typing').get().sendMessage('<chatId>', true);
 ```
 
-### Parsing Telegram Updates with _Connector_
+## Parsing Telegram Updates with _Connector_
 You can leverage **TelegramMessageParser** class in order to parse the payload coming from Telegram webhook service.
 Basically, pass that payload through the constructor and call **_parse()_** method to wrap up the things in a single entity.
 ```apex

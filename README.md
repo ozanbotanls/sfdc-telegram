@@ -72,6 +72,8 @@ global with sharing class TelegramWebhook {
     }
 }
 ```
+## Setting Up Telegram Bot Token
+Set your Telegram Bot Token in Telegram Setup, a custom metadata comes with this package. Do activate the record while creating. (**Setup > Custom Metadata Types > Telegram Setup > Manage Records**)
 
 ## Building and Sending Messages with _Connector_
 

@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Telegram Setup</description>
+    <description>Telegram Setup. Protected: records are readable only by Apex in this namespace.</description>
     <label>Telegram Setup</label>
     <pluralLabel>Telegram Setup</pluralLabel>
-    <visibility>Public</visibility>
+    <visibility>Protected</visibility>
 </CustomObject>

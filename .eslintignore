@@ -4,3 +4,5 @@
 **/lwc/**/*.svg
 **/lwc/**/*.xml
 .sfdx
+coverage/
+jest-mocks/

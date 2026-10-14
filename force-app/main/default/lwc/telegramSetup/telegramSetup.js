@@ -2,83 +2,77 @@ import { LightningElement, wire } from "lwc";
 import { showSuccessMessage, showErrorMessage } from "c/showMessageHelper";
 import getRestApexClasses from "@salesforce/apex/TelegramSetupController.getRestApexClasses";
 import getSiteUrl from "@salesforce/apex/TelegramSetupController.getSiteUrl";
+import registerWebhook from "@salesforce/apex/TelegramSetupController.registerWebhook";
 
 export default class TelegramSetup extends LightningElement {
     siteUrls = [];
     restClasses = [];
     chosenSite;
     chosenClass;
-    botToken;
+    registering = false;
 
     @wire(getRestApexClasses)
     getRestClasses({ error, data }) {
         if (data) {
-            for (let i = 0; i < data.length; i++) {
-                this.restClasses = [...this.restClasses, { value: data[i].urlMapping, label: data[i].name }];
-            }
+            this.restClasses = data.map((cls) => ({ value: cls.urlMapping, label: cls.name }));
         } else if (error) {
-            window.console.log("error => " + JSON.stringify(error));
+            showErrorMessage(this, "Could not load Apex REST classes", this.reduceError(error));
         }
     }
+
     @wire(getSiteUrl)
     getSites({ error, data }) {
         if (data) {
-            for (let i = 0; i < data.length; i++) {
-                this.siteUrls = [...this.siteUrls, { value: data[i], label: data[i] }];
-            }
+            this.siteUrls = data.map((url) => ({ value: url, label: url }));
         } else if (error) {
-            window.console.log("error => " + JSON.stringify(error));
+            showErrorMessage(this, "Could not load sites", this.reduceError(error));
         }
     }
+
     get classes() {
         return this.restClasses;
     }
+
     get sites() {
         return this.siteUrls;
     }
+
     handleSiteChange(event) {
         this.chosenSite = event.detail.value;
     }
+
     handleClassChange(event) {
         this.chosenClass = event.detail.value;
     }
-    handleBotToken(event) {
-        this.botToken = event.target.value;
-    }
+
     get disabled() {
-        return !this.chosenSite || !this.chosenClass || !this.botToken;
+        return !this.chosenSite || !this.chosenClass || this.registering;
     }
+
+    /**
+     * The bot token lives in the Telegram_Bot_API Named Credential, so registration
+     * happens in Apex. Nothing secret passes through the browser.
+     */
     handleRegister() {
-        let urlMapping = this.chosenClass;
-        if (urlMapping.includes("/*")) {
-            urlMapping = urlMapping.replace("/*", "");
-        }
-        fetch(
-            "https://api.telegram.org/bot" +
-                this.botToken +
-                "/setWebhook?url=" +
-                this.chosenSite +
-                "/services/apexrest/" +
-                urlMapping +
-                "/" +
-                this.botToken,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            }
-        )
-            .then(response => {
-                return response.json();
+        this.registering = true;
+        registerWebhook({ siteUrl: this.chosenSite, urlMapping: this.chosenClass })
+            .then((message) => {
+                showSuccessMessage(this, "Registered!", message);
             })
-            .then(jsonResponse => {
-                window.console.log("jsonResponse ===> " + JSON.stringify(jsonResponse));
-                showSuccessMessage("Registered!", "You have subscribed to Telegram webhook service succesfully");
+            .catch((error) => {
+                showErrorMessage(this, "Registration failed", this.reduceError(error));
             })
-            .catch(error => {
-                window.console.log("callout error ===> " + JSON.stringify(error));
-                showErrorMessage("Error Occurred!", "Registration attempt to Telegram webhook service failed!");
+            .finally(() => {
+                this.registering = false;
             });
+    }
+
+    reduceError(error) {
+        return (
+            error?.body?.message ||
+            error?.body?.pageErrors?.[0]?.message ||
+            error?.message ||
+            "An unexpected error occurred."
+        );
     }
 }

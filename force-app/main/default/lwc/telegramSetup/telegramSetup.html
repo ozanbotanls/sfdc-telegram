@@ -2,6 +2,10 @@
     <lightning-card title="Telegram Webhook Registration" icon-name="custom:custom14">
         <div class="slds-m-around_medium">
             <p>Please specify your site details in order to register it to Telegram webhook service.</p>
+            <p class="slds-text-body_small slds-m-top_x-small">
+                Your bot token is read from the <strong>Telegram_Bot_API</strong> Named Credential, so you do not need
+                to enter it here.
+            </p>
             <lightning-combobox
                 name="sites"
                 label="Your Public Sites"
@@ -20,7 +24,6 @@
                 options={classes}
             >
             </lightning-combobox>
-            <lightning-input label="Telegram BOT Token" value={botToken} onchange={handleBotToken}></lightning-input>
             <br />
             <lightning-button
                 variant="success"

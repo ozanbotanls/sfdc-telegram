@@ -1,0 +1,96 @@
+name: CI
+
+on:
+    push:
+        branches: [master]
+    pull_request:
+    workflow_dispatch:
+
+jobs:
+    static-checks:
+        name: Format, lint and LWC tests
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: npm
+
+            # prettier-plugin-apex parses every Apex file, so this doubles as a syntax check
+            - uses: actions/setup-java@v4
+              with:
+                  distribution: temurin
+                  java-version: 17
+
+            - run: npm ci
+
+            - name: Check formatting
+              run: npm run prettier:verify
+
+            - name: Lint Lightning Web Components
+              run: npm run lint
+
+            - name: Run LWC unit tests
+              run: npm run test:unit -- --coverage
+
+            # PMD parses and statically analyses the Apex without needing an org.
+            # Fails the build on High/Critical only; drop the threshold locally
+            # to see the moderate and low findings too.
+            - name: Static analysis of the Apex
+              run: |
+                  npm install --global @salesforce/cli
+                  sf plugins install code-analyzer
+                  sf code-analyzer run --rule-selector pmd:apex --workspace force-app --severity-threshold 2
+
+    apex-tests:
+        name: Deploy and run Apex tests
+        runs-on: ubuntu-latest
+        # Needs a Dev Hub. Set the DEVHUB_SFDX_URL secret to
+        # `sf org display --target-org <devhub> --verbose --json | jq -r .result.sfdxAuthUrl`
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+
+            - name: Install the Salesforce CLI
+              run: npm install --global @salesforce/cli
+
+            - name: Authenticate to the Dev Hub
+              id: auth
+              env:
+                  DEVHUB_SFDX_URL: ${{ secrets.DEVHUB_SFDX_URL }}
+              run: |
+                  if [ -z "$DEVHUB_SFDX_URL" ]; then
+                    echo "DEVHUB_SFDX_URL is not set; skipping the Apex test job." >> "$GITHUB_STEP_SUMMARY"
+                    echo "skipped=true" >> "$GITHUB_OUTPUT"
+                    exit 0
+                  fi
+                  echo "$DEVHUB_SFDX_URL" > ./devhub.txt
+                  sf org login sfdx-url --sfdx-url-file ./devhub.txt --set-default-dev-hub --alias devhub
+                  rm -f ./devhub.txt
+                  echo "skipped=false" >> "$GITHUB_OUTPUT"
+
+            - name: Create a scratch org
+              if: steps.auth.outputs.skipped == 'false'
+              run: sf org create scratch --definition-file config/project-scratch-def.json --alias ci --set-default --duration-days 1 --wait 20
+
+            - name: Deploy
+              if: steps.auth.outputs.skipped == 'false'
+              run: sf project deploy start --target-org ci --wait 20
+
+            - name: Assign the permission set
+              if: steps.auth.outputs.skipped == 'false'
+              run: sf org assign permset --name Telegram --target-org ci
+
+            - name: Run Apex tests
+              if: steps.auth.outputs.skipped == 'false'
+              run: sf apex run test --target-org ci --code-coverage --result-format human --wait 20 --test-level RunLocalTests
+
+            - name: Delete the scratch org
+              if: always() && steps.auth.outputs.skipped == 'false'
+              run: sf org delete scratch --target-org ci --no-prompt

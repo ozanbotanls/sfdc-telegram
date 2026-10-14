@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <applicationVisibilities>
         <application>Telegram_Setup</application>
@@ -6,6 +6,14 @@
     </applicationVisibilities>
     <classAccesses>
         <apexClass>Telegram</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>TelegramCalloutQueueable</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>TelegramException</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
@@ -24,16 +32,35 @@
         <apexClass>TelegramUtility</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>TelegramWebhook</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>TelegramWebhookHandler</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <!--
+        Reads Webhook_Secret__c and Handler_Class__c. The bot token is no longer
+        stored here -- it lives in the Telegram_Bot_API Named Credential.
+    -->
     <customMetadataTypeAccesses>
         <enabled>true</enabled>
         <name>Telegram_Setup__mdt</name>
     </customMetadataTypeAccesses>
-    <description>Telegram Service Permissions</description>
+    <description
+    >Telegram Connector administration: run the setup component and register the webhook. Do NOT assign this to a site guest user -- use Telegram_Webhook_Guest for that.</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>Telegram</label>
+    <!-- TelegramSetupController queries ApexClass, which requires Author Apex. -->
     <userPermissions>
         <enabled>true</enabled>
-        <name>ApexRestServices</name>
+        <name>AuthorApex</name>
+    </userPermissions>
+    <!-- TelegramSetupController.registerWebhook writes the secret via the Metadata API. -->
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>ModifyMetadata</name>
     </userPermissions>
     <userPermissions>
         <enabled>true</enabled>
@@ -41,19 +68,11 @@
     </userPermissions>
     <userPermissions>
         <enabled>true</enabled>
-        <name>AuthorApex</name>
+        <name>ApexRestServices</name>
     </userPermissions>
     <userPermissions>
         <enabled>true</enabled>
         <name>LightningExperienceUser</name>
-    </userPermissions>
-    <userPermissions>
-        <enabled>true</enabled>
-        <name>ModifyMetadata</name>
-    </userPermissions>
-    <userPermissions>
-        <enabled>true</enabled>
-        <name>ViewRoles</name>
     </userPermissions>
     <userPermissions>
         <enabled>true</enabled>

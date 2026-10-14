@@ -1,5 +1,10 @@
 {
-  "orgName": "ozan.botan company",
-  "edition": "Developer",
-  "features": []
+    "orgName": "sfdc-telegram",
+    "edition": "Developer",
+    "features": ["EnableSetPasswordInApi", "Sites"],
+    "settings": {
+        "lightningExperienceSettings": {
+            "enableS1DesktopEnabled": true
+        }
+    }
 }

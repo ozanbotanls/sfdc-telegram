@@ -35,6 +35,15 @@ jobs:
             - name: Run LWC unit tests
               run: npm run test:unit -- --coverage
 
+            # PMD parses and statically analyses the Apex without needing an org.
+            # Fails the build on High/Critical only; drop the threshold locally
+            # to see the moderate and low findings too.
+            - name: Static analysis of the Apex
+              run: |
+                  npm install --global @salesforce/cli
+                  sf plugins install code-analyzer
+                  sf code-analyzer run --rule-selector pmd:apex --workspace force-app --severity-threshold 2
+
     apex-tests:
         name: Deploy and run Apex tests
         runs-on: ubuntu-latest

@@ -21,6 +21,7 @@ public with sharing class TelegramSetupController {
             SELECT Name, Body
             FROM ApexClass
             WHERE NamespacePrefix = NULL AND Status = 'Active'
+            WITH USER_MODE
             LIMIT :MAX_CLASSES_SCANNED
         ]) {
             if (cls.Body == null || !cls.Body.containsIgnoreCase('@RestResource')) {
@@ -60,6 +61,7 @@ public with sharing class TelegramSetupController {
             SELECT PathPrefix, Domain.Domain
             FROM DomainSite
             WHERE Site.Status = 'Active' AND Domain.Domain != NULL
+            WITH USER_MODE
         ]) {
             String siteUrl = 'https://' + ds.Domain.Domain;
             if (String.isNotBlank(ds.PathPrefix)) {

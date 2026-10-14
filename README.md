@@ -57,6 +57,13 @@ npm run test:unit         # LWC Jest tests
 sf apex run test --target-org telegram --code-coverage --result-format human
 ```
 
+Static analysis of the Apex needs no org:
+
+```zsh
+sf plugins install code-analyzer
+sf code-analyzer run --rule-selector pmd:apex --workspace force-app
+```
+
 ## Setting Up Your Bot Token
 
 The token BotFather gives you is **full control of your bot**. It is stored in the

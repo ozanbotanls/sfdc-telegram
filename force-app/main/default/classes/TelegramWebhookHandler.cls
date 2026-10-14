@@ -6,9 +6,9 @@
  */
 public interface TelegramWebhookHandler {
     /**
-     * @param update an already-parsed update. Reply with
-     *               update.getChatId() -- never update.getSender().id, which
+     * @param telegramUpdate an already-parsed update ("update" alone is a reserved DML keyword). Reply with
+     *               telegramUpdate.getChatId() -- never telegramUpdate.getSender().id, which
      *               differs in groups, supergroups and channels.
      */
-    void handleUpdate(TelegramMessageParser update);
+    void handleUpdate(TelegramMessageParser telegramUpdate);
 }

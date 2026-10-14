@@ -14,18 +14,18 @@ export default class TelegramSetup extends LightningElement {
     @wire(getRestApexClasses)
     getRestClasses({ error, data }) {
         if (data) {
-            this.restClasses = data.map(cls => ({ value: cls.urlMapping, label: cls.name }));
+            this.restClasses = data.map((cls) => ({ value: cls.urlMapping, label: cls.name }));
         } else if (error) {
-            showErrorMessage("Could not load Apex REST classes", this.reduceError(error));
+            showErrorMessage(this, "Could not load Apex REST classes", this.reduceError(error));
         }
     }
 
     @wire(getSiteUrl)
     getSites({ error, data }) {
         if (data) {
-            this.siteUrls = data.map(url => ({ value: url, label: url }));
+            this.siteUrls = data.map((url) => ({ value: url, label: url }));
         } else if (error) {
-            showErrorMessage("Could not load sites", this.reduceError(error));
+            showErrorMessage(this, "Could not load sites", this.reduceError(error));
         }
     }
 
@@ -56,11 +56,11 @@ export default class TelegramSetup extends LightningElement {
     handleRegister() {
         this.registering = true;
         registerWebhook({ siteUrl: this.chosenSite, urlMapping: this.chosenClass })
-            .then(message => {
-                showSuccessMessage("Registered!", message);
+            .then((message) => {
+                showSuccessMessage(this, "Registered!", message);
             })
-            .catch(error => {
-                showErrorMessage("Registration failed", this.reduceError(error));
+            .catch((error) => {
+                showErrorMessage(this, "Registration failed", this.reduceError(error));
             })
             .finally(() => {
                 this.registering = false;

@@ -36,27 +36,44 @@ global with sharing class TelegramWebhook {
         }
 
         try {
-            TelegramMessageParser update = new TelegramMessageParser(req.requestBody.toString()).parse();
+            TelegramMessageParser telegramUpdate = new TelegramMessageParser(req.requestBody.toString()).parse();
             TelegramWebhookHandler handler = resolveHandler(setup.Handler_Class__c);
             if (handler != null) {
-                handler.handleUpdate(update);
+                handler.handleUpdate(telegramUpdate);
             } else {
                 System.debug(
                     LoggingLevel.WARN,
-                    'No TelegramWebhookHandler configured; dropping update ' + update.getUpdateId()
+                    'No TelegramWebhookHandler configured; dropping update ' + telegramUpdate.getUpdateId()
                 );
             }
             res.statusCode = 200;
         } catch (Exception e) {
             // a non-2xx makes Telegram redeliver, which is what we want for a transient failure
-            System.debug(LoggingLevel.ERROR, 'Telegram webhook failed: ' + e.getMessage() + '\n' + e.getStackTraceString());
+            System.debug(
+                LoggingLevel.ERROR,
+                'Telegram webhook failed: ' + e.getMessage() + '\n' + e.getStackTraceString()
+            );
             res.statusCode = 500;
             res.responseBody = Blob.valueOf('{"error":"Handler failed."}');
         }
     }
 
+    /**
+     * Custom metadata records cannot be created by DML, so tests inject one here.
+     * The flag is separate from the value so a test can also assert the
+     * "no record configured" path deterministically, whatever the org contains.
+     */
+    @TestVisible
+    private static Telegram_Setup__mdt setupOverride;
+    @TestVisible
+    private static Boolean setupOverridden = false;
+
     @TestVisible
     private static Telegram_Setup__mdt getActiveSetup() {
+        if (setupOverridden) {
+            // mirror the real lookup: an inactive record is no record
+            return (setupOverride != null && setupOverride.Is_Active__c == true) ? setupOverride : null;
+        }
         // getAll() does not consume a SOQL query
         for (Telegram_Setup__mdt setup : Telegram_Setup__mdt.getAll().values()) {
             if (setup.Is_Active__c == true) {

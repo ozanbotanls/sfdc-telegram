@@ -170,8 +170,22 @@ public with sharing class TelegramSetupController {
         return EncodingUtil.convertToHex(Crypto.generateAesKey(256));
     }
 
+    /**
+     * Custom metadata records cannot be created by DML, so tests inject one here.
+     * The flag is separate from the value so a test can also assert the
+     * "no record configured" path deterministically, whatever the org contains.
+     */
+    @TestVisible
+    private static Telegram_Setup__mdt setupOverride;
+    @TestVisible
+    private static Boolean setupOverridden = false;
+
     @TestVisible
     private static Telegram_Setup__mdt getActiveSetup() {
+        if (setupOverridden) {
+            // mirror the real lookup: an inactive record is no record
+            return (setupOverride != null && setupOverride.Is_Active__c == true) ? setupOverride : null;
+        }
         for (Telegram_Setup__mdt setup : Telegram_Setup__mdt.getAll().values()) {
             if (setup.Is_Active__c == true) {
                 return setup;

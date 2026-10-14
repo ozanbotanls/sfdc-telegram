@@ -1,14 +1,19 @@
 # _Telegram Connector for Salesforce_
----------
+
+---
+
 [Bot API]: https://core.telegram.org/bots/api
+
 This codebase will allow Salesforce Developers to easily integrate the Salesforce platform with Telegram through [Bot API]. This is not complete coverage, but fair enough to get developers going by eliminating a lot of hassles with which, under normal circumstances, they might have been facing in overcoming basic communication between two systems.
 
 ## Install using Salesforce DX
 
+The retired `sfdx force:*` commands have been replaced by the `sf` CLI.
+
 1.  Authenticate with your dev hub org:
 
     ```zsh
-    sfdx force:auth:web:login -d -a devhuborg
+    sf org login web --set-default-dev-hub --alias devhuborg
     ```
 
 1.  Clone the repository:
@@ -21,26 +26,36 @@ This codebase will allow Salesforce Developers to easily integrate the Salesforc
 1.  Create a scratch org and provide it with an alias:
 
     ```zsh
-    sfdx force:org:create -s -f config/project-scratch-def.json -a telegram
+    sf org create scratch --definition-file config/project-scratch-def.json --alias telegram --set-default
     ```
 
-1.  Push the app to your scratch org:
+1.  Deploy the app to your scratch org:
 
     ```zsh
-    sfdx force:source:push
+    sf project deploy start --target-org telegram
     ```
 
 1.  Assign the Telegram permission set to the default user:
 
     ```zsh
-    sfdx force:user:permset:assign -n Telegram
+    sf org assign permset --name Telegram --target-org telegram
     ```
 
 1.  Open the scratch org:
 
+    ```zsh
+    sf org open --target-org telegram
     ```
-    sfdx force:org:open
-    ```
+
+### Running the tests
+
+```zsh
+npm ci
+npm run lint              # eslint over the Lightning Web Components
+npm run prettier:verify   # also parses every Apex file, so it catches syntax errors
+npm run test:unit         # LWC Jest tests
+sf apex run test --target-org telegram --code-coverage --result-format human
+```
 
 ## Setting Up Your Bot Token
 
@@ -63,13 +78,16 @@ Setup > Manage Records**), tick **Is Active**, and set **Handler Class** to the 
 the webhook.
 
 ## Registration for Telegram Webhook Service
+
 [Update]: https://core.telegram.org/bots/api#update
+
 In order to constantly _listen_ to incoming messages that you will receive in your chat group and to get them momentarily from within your server, Telegram [Bot API] provides you with a _webhook service_ that pings your endpoint whenever an [Update] occurs in the specified chat group. To ease the setup process, this _Connector_ has a custom LWC for you to set a webhook.
 
 ![alt text](https://github.com/ozanbotanls/sfdc-telegram/blob/master/readmephoto/telegram_setup.png "Telegram Setup")
 
 [Apex REST]: https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_rest_code_sample_basic.htm
 [Public Site]: https://help.salesforce.com/articleView?id=sites_setup_overview.htm&type=5
+
 Because Telegram will only pass a payload without going through 'authorization' flow, the best way to expose an endpoint convenient to this purpose on the Salesforce side is to create a [Public Site] that maps to an [Apex REST] implementation handling incoming updates.
 
 This _Connector_ ships that implementation: **`TelegramWebhook`**, mapped to `/telegram/*`. Create a
@@ -98,16 +116,18 @@ Setup record. `TelegramWebhook` authenticates the delivery, parses it, and hands
 
 ```apex
 public with sharing class MyTelegramHandler implements TelegramWebhookHandler {
-    public void handleUpdate(TelegramMessageParser update) {
+    public void handleUpdate(TelegramMessageParser telegramUpdate) {
         // always reply to the chat, not to the sender -- they differ in groups and channels
-        String chatId = update.getChatId();
+        String chatId = telegramUpdate.getChatId();
 
-        if (update.isCallback()) {
-            new TelegramMessage.AnswerCallbackQuery(update.getMessageId(), 'Got it!').get().sendMessage(null, false);
+        if (telegramUpdate.isCallback()) {
+            new TelegramMessage.AnswerCallbackQuery(telegramUpdate.getMessageId(), 'Got it!')
+                .get()
+                .sendMessage(null, false);
             return;
         }
-        if (update.isText()) {
-            new TelegramMessage.Text('You said: ' + update.getMessage()).get().sendMessage(chatId, false);
+        if (telegramUpdate.isText()) {
+            new TelegramMessage.Text('You said: ' + telegramUpdate.getMessage()).get().sendMessage(chatId, false);
         }
     }
 }
@@ -138,7 +158,9 @@ try {
 
 [InlineKeyboardMarkup]: https://core.telegram.org/bots/api#inlinekeyboardmarkup
 [ReplyKeyboardMarkup]: https://core.telegram.org/bots/api#replykeyboardmarkup
+
 Telegram has [InlineKeyboardMarkup] and [ReplyKeyboardMarkup], two distinct keyboard entities that you can utilize in order to provide button interaction with the user in the chat. This becomes an even more desired option in case you have a questionnaire or flow-based conversation to get inputs from the users. Build them in Apex easily as shown below.
+
 ```apex
 // send a text message with InlineKeyboard entities for user to response (useful for quiz, etc.)
 Telegram.InlineKeyboard inlineKeyboard1 = new Telegram.InlineKeyboard();
@@ -165,6 +187,7 @@ new TelegramMessage.Text('Choose a Salesforce action')
 
 Passing a flat list stacks each button in its own row. To put buttons **side by side**, pass one inner
 list per row:
+
 ```apex
 new TelegramMessage.Text('Pick one')
     .addInlineKeyboard(
@@ -179,6 +202,7 @@ new TelegramMessage.Text('Pick one')
 
 Whenever the user taps an inline button, Telegram sends a `callback_query` that **must** be answered --
 until it is, the button keeps spinning for the user.
+
 ```apex
 // acknowledge the tap (optionally as a pop-up alert with the third parameter)
 new TelegramMessage.AnswerCallbackQuery(parser.getMessageId(), 'Saved!').get().sendMessage(null, true);
@@ -194,8 +218,11 @@ new TelegramMessage.AnswerInlineQuery(parser.getMessageId(), JSON.serialize(resu
     .get()
     .sendMessage(null, true);
 ```
-------
+
+---
+
 Sometimes you might need to force the user to reply to one of your specific messages. So, take this!
+
 ```apex
 // force user to reply specifically to what your bot is sending out in the chat.
 new TelegramMessage.Text('Your response will be linked to this')
@@ -203,8 +230,11 @@ new TelegramMessage.Text('Your response will be linked to this')
     .get()
     .sendMessage(chatId, true);
 ```
-----
+
+---
+
 Other than text messages, there are a couple of more options to be used with the _Connector_
+
 ```apex
 // send a Photo
 new TelegramMessage.Photo('photoUrlOrFileId', 'photoCaption').get().sendMessage(chatId, true);
@@ -218,8 +248,11 @@ new TelegramMessage.Location(12.45654, 20.53214).get().sendMessage(chatId, true)
 // send a Contact info
 new TelegramMessage.Contact('phoneNumber', 'fName', 'lName').get().sendMessage(chatId, true);
 ```
--------
+
+---
+
 One cool thing with the **ChatAction** class is that it gives your bot the ability to act more "_humanly_" by sending action status before the actual message is sent off. An unsupported action now raises a `TelegramException` instead of silently sending an empty payload.
+
 ```apex
 // options are: 'typing','upload_photo','record_video','upload_video','record_audio','upload_audio',
 // 'upload_document','find_location','record_video_note','upload_video_note','choose_sticker'
@@ -227,8 +260,10 @@ new TelegramMessage.ChatAction('typing').get().sendMessage(chatId, true);
 ```
 
 ## Parsing Telegram Updates with _Connector_
+
 You can leverage **TelegramMessageParser** class in order to parse the payload coming from Telegram webhook service.
 Basically, pass that payload through the constructor and call **_parse()_** method to wrap up the things in a single entity.
+
 ```apex
 String webhookPayload; // sent off by Telegram
 TelegramMessageParser parser = new TelegramMessageParser(webhookPayload).parse();
@@ -257,6 +292,7 @@ Moreover, you will have the chance to identify which type of incoming message yo
 This is especially crucial and handy when it comes to conducting quiz or flow-based user interactions.
 All of the `is*()` checks below are null-safe -- they return `false` rather than throwing when the update
 carries no entity of that kind.
+
 ```apex
 // DETERMINE THE TYPE OF MESSAGE
 if (parser.isCallback()) {
@@ -286,6 +322,7 @@ if (parser.isPhoto()) {
 
 If you would rather switch than chain, `getEntityType()` returns the `Telegram.EntityType` enum value
 directly (`UNKNOWN` for a message sub-type the connector does not model).
+
 ```apex
 switch on parser.getEntityType() {
     when TEXT { /* ... */ }

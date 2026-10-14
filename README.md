@@ -146,12 +146,19 @@ String webhookPayload; // sent off by Telegram
 TelegramMessageParser parser = new TelegramMessageParser(webhookPayload).parse();
 ```
 
-Your **_parser_** instance now holds all the things with which you will need to handle your bot's user interections.
-For instance, to grab who is writing to your bot, get _sender_ information as follows.
+Your **_parser_** instance now holds all the things with which you will need to handle your bot's user interactions.
+
+> :warning: **Always reply to `getChatId()`, never to `getSender().id`.** They are the same value only in
+> one-to-one chats. In a group, supergroup or channel the chat id is a different (and usually negative)
+> number, so a reply addressed to the sender id is delivered as a DM or rejected outright.
+
 ```apex
-// holds sender information
+// where to send the reply
+String chatId = parser.getChatId();
+String chatType = parser.getChatType(); // private | group | supergroup | channel
+
+// who wrote to the bot
 Telegram.TelegramUser sender = parser.getSender();
-String chatId = sender.id;
 String fName = sender.first_name;
 String lName = sender.last_name;
 String username = sender.username;
@@ -159,12 +166,16 @@ Boolean isBotUser = sender.is_bot;
 ```
 
 Moreover, you will have the chance to identify which type of incoming message your bot will be coping with.
-This is especially crucial and handy when it comes to conducting quiz or flow-based user interections.
+This is especially crucial and handy when it comes to conducting quiz or flow-based user interactions.
+All of the `is*()` checks below are null-safe -- they return `false` rather than throwing when the update
+carries no entity of that kind.
 ```apex
 // DETERMINE THE TYPE OF MESSAGE
 if (parser.isCallback()) {
     // incoming response is stemmed from CallbackQuery.
     String callbackAction = parser.getMessage();
+    // acknowledge it, otherwise the button spins until Telegram times it out
+    new TelegramMessage.AnswerCallbackQuery(parser.getMessageId(), 'Got it!').get().sendMessage(null, true);
 }
 
 if (parser.isInline()) {
@@ -177,23 +188,20 @@ if (parser.isText()) {
     String text = parser.getMessage();
 }
 
-if (parser.isAudio()) {
-    // incoming message is audio.
-    Object audio = parser.getEntity();
-}
-
 if (parser.isPhoto()) {
-    // incoming message is photo.
     Object photo = parser.getEntity();
 }
 
-if (parser.isSticker()) {
-    // incoming message is sticker.
-    Object sticker = parser.getEntity();
-}
+// also available: isAudio(), isVoice(), isSticker(), isDocument(), isVideo(),
+// isVideoNote(), isAnimation(), isLocation(), isContact()
+```
 
-if (parser.isVoice()) {
-    // incoming message is voice.
-    Object voice = parser.getEntity();
+If you would rather switch than chain, `getEntityType()` returns the `Telegram.EntityType` enum value
+directly (`UNKNOWN` for a message sub-type the connector does not model).
+```apex
+switch on parser.getEntityType() {
+    when TEXT { /* ... */ }
+    when PHOTO { /* ... */ }
+    when else { /* ... */ }
 }
 ```

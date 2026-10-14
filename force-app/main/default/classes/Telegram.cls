@@ -25,6 +25,18 @@ public class Telegram {
         public String username;
         public Boolean is_bot;
     }
+    /**
+     * https://core.telegram.org/bots/api/#chat
+     * The chat a message belongs to. For private chats this matches the sender's
+     * id, but for groups, supergroups and channels it does NOT -- replies must be
+     * addressed to the chat id, never to the sender id.
+     */
+    public class Chat {
+        public String id;
+        public String type;
+        public String title;
+        public String username;
+    }
     public class Entity {
         Object entity;
         EntityType type;
@@ -44,6 +56,13 @@ public class Telegram {
         PHOTO,
         AUDIO,
         STICKER,
-        VOICE
+        VOICE,
+        DOCUMENT,
+        VIDEO,
+        VIDEO_NOTE,
+        ANIMATION,
+        LOCATION,
+        CONTACT,
+        UNKNOWN
     }
 }

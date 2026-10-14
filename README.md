@@ -42,6 +42,26 @@ This codebase will allow Salesforce Developers to easily integrate the Salesforc
     sfdx force:org:open
     ```
 
+## Setting Up Your Bot Token
+
+The token BotFather gives you is **full control of your bot**. It is stored in the
+`Telegram_Bot_API` **Named Credential** that ships with this project, not in a custom field:
+
+> **Setup > Named Credentials > Telegram Bot API > Edit**, and set the URL to
+> `https://api.telegram.org/bot<YOUR_BOT_TOKEN>`
+
+Apex then calls out via `callout:Telegram_Bot_API/sendMessage`, so the token never appears in Apex,
+in a SOQL result, in a debug log, or in the browser.
+
+> :information_source: The token is still readable by anyone who can open Setup in your org. A Named
+> Credential narrows the audience from "everyone with the Telegram permission set" to "administrators",
+> and keeps it out of logs -- it does not hide it from an admin.
+
+Then create a **Telegram Setup** custom metadata record (**Setup > Custom Metadata Types > Telegram
+Setup > Manage Records**), tick **Is Active**, and set **Handler Class** to the API name of your
+`TelegramWebhookHandler` implementation. **Webhook Secret** is filled in for you when you register
+the webhook.
+
 ## Registration for Telegram Webhook Service
 [Update]: https://core.telegram.org/bots/api#update
 In order to constantly _listen_ to incoming messages that you will receive in your chat group and to get them momentarily from within your server, Telegram [Bot API] provides you with a _webhook service_ that pings your endpoint whenever an [Update] occurs in the specified chat group. To ease the setup process, this _Connector_ has a custom LWC for you to set a webhook.
@@ -52,28 +72,46 @@ In order to constantly _listen_ to incoming messages that you will receive in yo
 [Public Site]: https://help.salesforce.com/articleView?id=sites_setup_overview.htm&type=5
 Because Telegram will only pass a payload without going through 'authorization' flow, the best way to expose an endpoint convenient to this purpose on the Salesforce side is to create a [Public Site] that maps to an [Apex REST] implementation handling incoming updates.
 
-Create a public site, grant it access base Telegram classes as well as the custom Apex Rest resource that you will create. In the setup page above, after creating the site and the Apex Rest class, you will be able to see them in the dropdown list. Just choose and then put your **BOT TOKEN**, then press "Register".
+This _Connector_ ships that implementation: **`TelegramWebhook`**, mapped to `/telegram/*`. Create a
+public site, assign the **`Telegram_Webhook_Guest`** permission set to its guest user (a
+least-privilege set -- do **not** give the guest user the admin `Telegram` permission set), then pick
+the site in the setup component and press "Register".
 
-Here you go, you are now all set! You have a public endpoint welcoming Telegram webhook updates.
+### How incoming requests are authenticated
 
-> p.s. With regards to possible 'security concerns', here is the thing: Telegram will ping your endpoint with an update appended to your **BOT TOKEN** which, ideally, is only known by you. That way you can 'authenticate' incoming requests in your Rest Controller. (See below example)
+Registration generates a random **webhook secret**, stores it on the Telegram Setup record and passes
+it to Telegram as `setWebhook`'s `secret_token`. Telegram then echoes it in the
+`X-Telegram-Bot-Api-Secret-Token` header of every delivery, and `TelegramWebhook` rejects anything
+that does not match with a **401**, using a constant-time comparison.
+
+> :warning: Earlier versions of this README suggested appending the **bot token** to the public
+> webhook URL and comparing it in your own REST class. Do not do that. A URL path is recorded in site
+> access logs, Event Monitoring and browser history, and the bot token is the credential for your
+> entire bot. A leaked webhook secret only lets someone post forged updates; a leaked bot token lets
+> them read and send everything. (That snippet also referenced
+> `TelegramUtility.TELEGRAM_CHAT_TOKEN`, which never existed in this codebase.)
+
+### Handling updates
+
+Implement `TelegramWebhookHandler` and name your class in the **Handler Class** field of the Telegram
+Setup record. `TelegramWebhook` authenticates the delivery, parses it, and hands you the result.
 
 ```apex
-@RestResource(urlMapping='/telegram/*')
-global with sharing class TelegramWebhook {
-    @HttpPost
-    global static void getWebHookUpdate() {
-        RestRequest req = RestContext.request;
-        if (req.requestURI.substring(req.requestURI.lastIndexOf('/') + 1) != TelegramUtility.TELEGRAM_CHAT_TOKEN) {
-            System.debug('Telegram chatbot token is not provided. Can not proceed');
+public with sharing class MyTelegramHandler implements TelegramWebhookHandler {
+    public void handleUpdate(TelegramMessageParser update) {
+        // always reply to the chat, not to the sender -- they differ in groups and channels
+        String chatId = update.getChatId();
+
+        if (update.isCallback()) {
+            new TelegramMessage.AnswerCallbackQuery(update.getMessageId(), 'Got it!').get().sendMessage(null, false);
             return;
         }
-        TelegramWebhookController.onUpdateReceived(req.requestBody.toString());
+        if (update.isText()) {
+            new TelegramMessage.Text('You said: ' + update.getMessage()).get().sendMessage(chatId, false);
+        }
     }
 }
 ```
-## Setting Up Telegram Bot Token
-Set your Telegram Bot Token in Telegram Setup, a custom metadata comes with this package. Do activate the record while creating. (**Setup > Custom Metadata Types > Telegram Setup > Manage Records**)
 
 ## Building and Sending Messages with _Connector_
 

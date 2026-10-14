@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!--
+        Least-privilege permission set for the public site GUEST USER that Telegram
+        posts updates to. It grants only what TelegramWebhook needs to authenticate
+        a delivery, parse it and reply -- no Author Apex, no Modify Metadata, no
+        setup access. Assign your own TelegramWebhookHandler implementation here too.
+    -->
+    <classAccesses>
+        <apexClass>Telegram</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>TelegramCalloutQueueable</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>TelegramException</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>TelegramMessage</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>TelegramMessageParser</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>TelegramUtility</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>TelegramWebhook</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>TelegramWebhookHandler</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <customMetadataTypeAccesses>
+        <enabled>true</enabled>
+        <name>Telegram_Setup__mdt</name>
+    </customMetadataTypeAccesses>
+    <description>Least-privilege access for the Telegram webhook site guest user.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Telegram Webhook Guest</label>
+</PermissionSet>

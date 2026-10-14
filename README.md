@@ -79,8 +79,25 @@ Set your Telegram Bot Token in Telegram Setup, a custom metadata comes with this
 
 ```apex
 // send a basic text message synchronously (pass false as a second param for async)
-new TelegramMessage.Text('<chat message>').get().sendMessage('<chatId>', true);
+new TelegramMessage.Text('<chat message>').get().sendMessage(chatId, true);
 ```
+
+The second parameter picks the transport. `true` calls out synchronously and returns Telegram's
+response body. `false` hands the callout to `TelegramCalloutQueueable`, which can be enqueued from a
+trigger, a batch, another queueable or a future -- unlike the `@future` it replaces -- and which
+backs off and re-enqueues when Telegram answers HTTP 429.
+
+Any non-2xx response raises a **`TelegramException`** carrying Telegram's own `error_code`,
+`description` and `retry_after`, so a failed send can no longer be mistaken for a successful one.
+
+```apex
+try {
+    new TelegramMessage.Text('hello').get().sendMessage(chatId, true);
+} catch (TelegramException e) {
+    System.debug(e.statusCode + ' / ' + e.errorCode + ' / ' + e.description);
+}
+```
+
 [InlineKeyboardMarkup]: https://core.telegram.org/bots/api#inlinekeyboardmarkup
 [ReplyKeyboardMarkup]: https://core.telegram.org/bots/api#replykeyboardmarkup
 Telegram has [InlineKeyboardMarkup] and [ReplyKeyboardMarkup], two distinct keyboard entities that you can utilize in order to provide button interaction with the user in the chat. This becomes an even more desired option in case you have a questionnaire or flow-based conversation to get inputs from the users. Build them in Apex easily as shown below.
@@ -95,9 +112,9 @@ inlineKeyboard2.callback_data = 'keyboard2';
 new TelegramMessage.Text('<chat message>')
     .addInlineKeyboard(new List<Telegram.InlineKeyboard>{ inlineKeyboard1, inlineKeyboard2 })
     .get()
-    .sendMessage('<chatId>', true);
+    .sendMessage(chatId, true);
 
-// send a text message with ReplyKeyboard entities for user to react/navigate (flow-based interections, etc.)
+// send a text message with ReplyKeyboard entities for user to react/navigate (flow-based interactions, etc.)
 Telegram.ReplyKeyboard replyKeyboard1 = new Telegram.ReplyKeyboard();
 replyKeyboard1.text = 'Open a Case';
 Telegram.ReplyKeyboard replyKeyboard2 = new Telegram.ReplyKeyboard();
@@ -105,7 +122,39 @@ replyKeyboard2.text = 'Get My Order Status';
 new TelegramMessage.Text('Choose a Salesforce action')
     .addReplyKeyboard(new List<Telegram.ReplyKeyboard>{ replyKeyboard1, replyKeyboard2 }, true, true)
     .get()
-    .sendMessage('<chatId>', true);
+    .sendMessage(chatId, true);
+```
+
+Passing a flat list stacks each button in its own row. To put buttons **side by side**, pass one inner
+list per row:
+```apex
+new TelegramMessage.Text('Pick one')
+    .addInlineKeyboard(
+        new List<List<Telegram.InlineKeyboard>>{
+            new List<Telegram.InlineKeyboard>{ inlineKeyboard1, inlineKeyboard2 }, // one row, two buttons
+            new List<Telegram.InlineKeyboard>{ inlineKeyboard3 }                   // second row
+        }
+    )
+    .get()
+    .sendMessage(chatId, true);
+```
+
+Whenever the user taps an inline button, Telegram sends a `callback_query` that **must** be answered --
+until it is, the button keeps spinning for the user.
+```apex
+// acknowledge the tap (optionally as a pop-up alert with the third parameter)
+new TelegramMessage.AnswerCallbackQuery(parser.getMessageId(), 'Saved!').get().sendMessage(null, true);
+
+// ...and edit or remove the message the keyboard was attached to
+new TelegramMessage.EditMessageText(parser.getCallbackMessageId(), 'You picked keyboard1')
+    .get()
+    .sendMessage(parser.getChatId(), true);
+new TelegramMessage.DeleteMessage(parser.getCallbackMessageId()).get().sendMessage(parser.getChatId(), true);
+
+// respond to an inline_query with a serialized InlineQueryResult array
+new TelegramMessage.AnswerInlineQuery(parser.getMessageId(), JSON.serialize(results))
+    .get()
+    .sendMessage(null, true);
 ```
 ------
 Sometimes you might need to force the user to reply to one of your specific messages. So, take this!
@@ -114,28 +163,29 @@ Sometimes you might need to force the user to reply to one of your specific mess
 new TelegramMessage.Text('Your response will be linked to this')
     .forceReply()
     .get()
-    .sendMessage('<chatId>', true);
+    .sendMessage(chatId, true);
 ```
 ----
 Other than text messages, there are a couple of more options to be used with the _Connector_
 ```apex
 // send a Photo
-new TelegramMessage.Photo('photoUrlOrFileId', 'photoCaption').get().sendMessage('<chatId>', true);
+new TelegramMessage.Photo('photoUrlOrFileId', 'photoCaption').get().sendMessage(chatId, true);
 
 // send a Sticker
-new TelegramMessage.Sticker('stickerUrlOrFileId').get().sendMessage('<chatId>', true);
+new TelegramMessage.Sticker('stickerUrlOrFileId').get().sendMessage(chatId, true);
 
 // send a Location
-new TelegramMessage.Location(12.45654, 20.53214).get().sendMessage('<chatId>', true);
+new TelegramMessage.Location(12.45654, 20.53214).get().sendMessage(chatId, true);
 
 // send a Contact info
-new TelegramMessage.Contact('phonoNumber', 'fName', 'lName').get().sendMessage('<chatId>', true);
+new TelegramMessage.Contact('phoneNumber', 'fName', 'lName').get().sendMessage(chatId, true);
 ```
 -------
-One cool thing with the **ChatAction** class is that it gives your bot the ability to act more "_humanly_" by sending action status before the actual message is sent off.
+One cool thing with the **ChatAction** class is that it gives your bot the ability to act more "_humanly_" by sending action status before the actual message is sent off. An unsupported action now raises a `TelegramException` instead of silently sending an empty payload.
 ```apex
-// options are: 'typing','upload_photo','record_video','upload_video','record_audio','upload_audio','upload_document','find_location'
-new TelegramMessage.ChatAction('typing').get().sendMessage('<chatId>', true);
+// options are: 'typing','upload_photo','record_video','upload_video','record_audio','upload_audio',
+// 'upload_document','find_location','record_video_note','upload_video_note','choose_sticker'
+new TelegramMessage.ChatAction('typing').get().sendMessage(chatId, true);
 ```
 
 ## Parsing Telegram Updates with _Connector_
